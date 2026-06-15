@@ -1,0 +1,30 @@
+﻿[
+    {
+        "id":  "black-canarinho",
+        "model":  "public/textures/generated-3d/models/black-canarinho.glb",
+        "atlas":  "public/textures/generated-3d/texture-atlas/black-canarinho-atlas.png",
+        "front":  "public/textures/generated-3d/edited-png/black-canarinho-front-10.png",
+        "back":  "public/textures/generated-3d/edited-png/black-canarinho-back-10.png"
+    },
+    {
+        "id":  "golden-albiceleste",
+        "model":  "public/textures/generated-3d/models/golden-albiceleste.glb",
+        "atlas":  "public/textures/generated-3d/texture-atlas/golden-albiceleste-atlas.png",
+        "front":  "public/textures/generated-3d/edited-png/golden-albiceleste-front-10.png",
+        "back":  "public/textures/generated-3d/edited-png/golden-albiceleste-back-10.png"
+    },
+    {
+        "id":  "le-phantom",
+        "model":  "public/textures/generated-3d/models/le-phantom.glb",
+        "atlas":  "public/textures/generated-3d/texture-atlas/le-phantom-atlas.png",
+        "front":  "public/textures/generated-3d/edited-png/le-phantom-front-10.png",
+        "back":  "public/textures/generated-3d/edited-png/le-phantom-back-10.png"
+    },
+    {
+        "id":  "lusitano-prime",
+        "model":  "public/textures/generated-3d/models/lusitano-prime.glb",
+        "atlas":  "public/textures/generated-3d/texture-atlas/lusitano-prime-atlas.png",
+        "front":  "public/textures/generated-3d/edited-png/lusitano-prime-front-07.png",
+        "back":  "public/textures/generated-3d/edited-png/lusitano-prime-back-07.png"
+    }
+]

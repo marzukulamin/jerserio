@@ -1,0 +1,34 @@
+﻿[
+    {
+        "id":  "black-canarinho",
+        "name":  "Black Canarinho",
+        "model":  "public/textures/final-3d/models/black-canarinho.glb",
+        "atlas":  "public/textures/final-3d/texture-atlas/black-canarinho-atlas.png",
+        "front":  "public/textures/Black Canarinho(front).png",
+        "back":  "public/textures/Black Canarinho(Back).png"
+    },
+    {
+        "id":  "golden-albiceleste",
+        "name":  "Golden Albiceleste",
+        "model":  "public/textures/final-3d/models/golden-albiceleste.glb",
+        "atlas":  "public/textures/final-3d/texture-atlas/golden-albiceleste-atlas.png",
+        "front":  "public/textures/Golden Albiceleste(front).png",
+        "back":  "public/textures/Golden Albiceleste(back).png"
+    },
+    {
+        "id":  "le-phantom",
+        "name":  "Le Phantom",
+        "model":  "public/textures/final-3d/models/le-phantom.glb",
+        "atlas":  "public/textures/final-3d/texture-atlas/le-phantom-atlas.png",
+        "front":  "public/textures/Le Phantom(Front).png",
+        "back":  "public/textures/Le Phantom(Back).png"
+    },
+    {
+        "id":  "lusitano-prime",
+        "name":  "Lusitano Prime",
+        "model":  "public/textures/final-3d/models/lusitano-prime.glb",
+        "atlas":  "public/textures/final-3d/texture-atlas/lusitano-prime-atlas.png",
+        "front":  "public/textures/Lusitano Prime(front).png",
+        "back":  "public/textures/Lusitano Prime(back).png"
+    }
+]
