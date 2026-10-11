@@ -1,7 +1,8 @@
-import { Suspense, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import ModelErrorBoundary from './ModelErrorBoundary';
 
 interface InteractiveJersey3DProps {
   jerseyId: 'golden-albiceleste' | 'black-canarinho' | 'le-phantom' | 'lusitano-prime' | string;
@@ -71,6 +72,13 @@ function JerseyModel({ jerseyId }: { jerseyId: string }) {
   const modelRef = useRef<THREE.Group>(null);
   const startTimeRef = useRef<number | null>(null);
   const clonedScene = useMemo(() => cloneAndPrepareScene(scene), [scene]);
+  useEffect(() => () => {
+    clonedScene.traverse((child) => {
+      if (!(child as THREE.Mesh).isMesh) return;
+      const material = (child as THREE.Mesh).material;
+      (Array.isArray(material) ? material : [material]).forEach((item) => item.dispose());
+    });
+  }, [clonedScene]);
   const modelMetrics = useMemo(() => {
     clonedScene.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(clonedScene);
@@ -103,6 +111,7 @@ function JerseyModel({ jerseyId }: { jerseyId: string }) {
     <group ref={modelRef} scale={modelMetrics.scale} position={PRODUCT_STAGE_OFFSET}>
       <primitive
         object={clonedScene}
+        dispose={null}
         position={[-modelMetrics.center.x, -modelMetrics.center.y, -modelMetrics.center.z]}
       />
     </group>
@@ -112,42 +121,44 @@ function JerseyModel({ jerseyId }: { jerseyId: string }) {
 export default function InteractiveJersey3D({ jerseyId }: InteractiveJersey3DProps) {
   return (
     <div className="relative h-full w-full" style={{ background: 'transparent' }}>
-      <Canvas
-        className="h-full w-full"
-        style={{ width: '100%', height: '100%' }}
-        dpr={[1, 1.25]}
-        camera={{ position: [0, 0, 4.25], fov: 33 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      >
-        <ambientLight intensity={1.75} />
-        <directionalLight position={[0, 4, 4]} intensity={2.1} />
-        <directionalLight position={[0, -2, -4]} intensity={1.05} />
-        <directionalLight position={[-4, 1, 3]} intensity={1.0} />
-        <directionalLight position={[4, 1, 3]} intensity={1.0} />
-        <pointLight position={[0, 0, 2]} intensity={0.55} />
-
-        <Suspense
-          fallback={
-            <Html center>
-              <div className="rounded-full border border-white/10 bg-black/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#00d4aa]">
-                Loading jersey
-              </div>
-            </Html>
-          }
+      <ModelErrorBoundary key={jerseyId}>
+        <Canvas
+          className="h-full w-full"
+          style={{ width: '100%', height: '100%' }}
+          dpr={[1, 1.25]}
+          camera={{ position: [0, 0, 4.25], fov: 33 }}
+          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
-          <JerseyModel jerseyId={jerseyId} />
-        </Suspense>
+          <ambientLight intensity={1.75} />
+          <directionalLight position={[0, 4, 4]} intensity={2.1} />
+          <directionalLight position={[0, -2, -4]} intensity={1.05} />
+          <directionalLight position={[-4, 1, 3]} intensity={1.0} />
+          <directionalLight position={[4, 1, 3]} intensity={1.0} />
+          <pointLight position={[0, 0, 2]} intensity={0.55} />
 
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          minPolarAngle={Math.PI / 2}
-          maxPolarAngle={Math.PI / 2}
-          rotateSpeed={0.8}
-          target={[0, 0, 0]}
-          makeDefault
-        />
-      </Canvas>
+          <Suspense
+            fallback={
+              <Html center>
+                <div className="rounded-full border border-white/10 bg-black/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#00d4aa]">
+                  Loading jersey
+                </div>
+              </Html>
+            }
+          >
+            <JerseyModel jerseyId={jerseyId} />
+          </Suspense>
+
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            minPolarAngle={Math.PI / 2}
+            maxPolarAngle={Math.PI / 2}
+            rotateSpeed={0.8}
+            target={[0, 0, 0]}
+            makeDefault
+          />
+        </Canvas>
+      </ModelErrorBoundary>
 
       <div className="pointer-events-none absolute bottom-1 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#8a8a9a] backdrop-blur-md">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -159,5 +170,3 @@ export default function InteractiveJersey3D({ jerseyId }: InteractiveJersey3DPro
     </div>
   );
 }
-
-Object.values(MODEL_PATHS).forEach((path) => useGLTF.preload(path));

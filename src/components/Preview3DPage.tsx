@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import { Box, Loader2, Rotate3D, Shirt, ZoomIn } from 'lucide-react';
 import * as THREE from 'three';
+import ModelErrorBoundary from './ModelErrorBoundary';
 
 interface JerseyAsset {
   id: string;
@@ -13,8 +14,6 @@ interface JerseyAsset {
   back?: string;
   bakedTexture?: string;
 }
-
-const PREVIEW_CACHE_BUSTER = `preview-${Date.now()}`;
 
 const FALLBACK_ASSETS: JerseyAsset[] = [
   {
@@ -43,11 +42,6 @@ function publicPath(path: string) {
   return `/${path.replace(/^public\//, '')}`;
 }
 
-function cacheBustedPath(path: string, cacheKey = PREVIEW_CACHE_BUSTER) {
-  const separator = path.includes('?') ? '&' : '?';
-  return `${publicPath(path)}${separator}v=${cacheKey}`;
-}
-
 function tuneMaterial(material: THREE.Material) {
   const mat = material as THREE.MeshStandardMaterial;
 
@@ -65,7 +59,7 @@ function tuneMaterial(material: THREE.Material) {
 }
 
 function PreviewJerseyModel({ asset }: { asset: JerseyAsset }) {
-  const modelPath = cacheBustedPath(asset.model, `${asset.id}-${PREVIEW_CACHE_BUSTER}`);
+  const modelPath = publicPath(asset.model);
   const { scene } = useGLTF(modelPath, true);
   const modelRef = useRef<THREE.Group>(null);
   const clonedScene = useMemo(() => {
@@ -93,6 +87,13 @@ function PreviewJerseyModel({ asset }: { asset: JerseyAsset }) {
 
     return cloned;
   }, [scene]);
+  useEffect(() => () => {
+    clonedScene.traverse((child) => {
+      if (!(child as THREE.Mesh).isMesh) return;
+      const material = (child as THREE.Mesh).material;
+      (Array.isArray(material) ? material : [material]).forEach((item) => item.dispose());
+    });
+  }, [clonedScene]);
   const modelMetrics = useMemo(() => {
     clonedScene.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(clonedScene);
@@ -116,6 +117,7 @@ function PreviewJerseyModel({ asset }: { asset: JerseyAsset }) {
     <group ref={modelRef} scale={modelMetrics.scale}>
       <primitive
         object={clonedScene}
+        dispose={null}
         position={[-modelMetrics.center.x, -modelMetrics.center.y, -modelMetrics.center.z]}
       />
     </group>
@@ -168,7 +170,7 @@ export default function Preview3DPage() {
   useEffect(() => {
     let mounted = true;
 
-    fetch(`/textures/final-3d/manifest.json?v=${PREVIEW_CACHE_BUSTER}`, {
+    fetch('/textures/final-3d/manifest.json', {
       cache: 'no-store',
     })
       .then((response) => {
@@ -176,7 +178,11 @@ export default function Preview3DPage() {
         return response.json() as Promise<JerseyAsset[]>;
       })
       .then((manifest) => {
-        if (!mounted || manifest.length === 0) return;
+        if (!Array.isArray(manifest) || manifest.length === 0 || !manifest.every((asset) =>
+          asset && typeof asset.id === 'string' && typeof asset.name === 'string' &&
+          typeof asset.model === 'string' && asset.model.startsWith('public/textures/')
+        )) throw new Error('Invalid 3D manifest');
+        if (!mounted) return;
         setAssets(manifest);
         setSelectedId(manifest[0].id);
       })
@@ -214,7 +220,9 @@ export default function Preview3DPage() {
               </div>
             }
           >
-            <PreviewCanvas asset={selectedAsset} />
+            <ModelErrorBoundary key={selectedAsset.id}>
+              <PreviewCanvas asset={selectedAsset} />
+            </ModelErrorBoundary>
           </Suspense>
         ) : null}
       </section>
@@ -259,7 +267,7 @@ export default function Preview3DPage() {
           <span className="h-4 w-px bg-white/10" />
           <span className="flex items-center gap-2">
             <Shirt size={14} />
-            4 jerseys
+            {assets.length} jerseys
           </span>
         </div>
       </div>

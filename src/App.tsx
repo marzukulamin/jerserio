@@ -21,6 +21,14 @@ export default function App() {
   const [toast,           setToast]            = useState(false);
   const [toastHiding,     setToastHiding]      = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastHideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const carouselTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => {
+    clearTimeout(toastTimer.current);
+    clearTimeout(toastHideTimer.current);
+    clearTimeout(carouselTimer.current);
+  }, []);
 
   const uiVisible = phase !== 'intro';
   const jersey    = JERSEYS[jerseyIndex];
@@ -59,17 +67,18 @@ export default function App() {
     });
     setPriceKey((k) => k + 1);
 
-    setTimeout(() => setCarouselDir(null), 480);
+    carouselTimer.current = setTimeout(() => setCarouselDir(null), 480);
   }, [carouselDir]);
 
   /* ── CART TOAST ── */
   const handleAddSuccess = useCallback(() => {
     clearTimeout(toastTimer.current);
+    clearTimeout(toastHideTimer.current);
     setToastHiding(false);
     setToast(true);
     toastTimer.current = setTimeout(() => {
       setToastHiding(true);
-      setTimeout(() => setToast(false), 350);
+      toastHideTimer.current = setTimeout(() => setToast(false), 350);
     }, 2500);
   }, []);
 
@@ -105,6 +114,7 @@ export default function App() {
 
         {phase === 'detail' && (
           <ProductDetail
+            key={jersey.id}
             jersey={jersey}
             onAddSuccess={handleAddSuccess}
           />

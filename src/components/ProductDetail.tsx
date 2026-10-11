@@ -1,4 +1,4 @@
-import { useState, type ReactNode, Suspense } from 'react';
+import { useEffect, useRef, useState, type ReactNode, Suspense } from 'react';
 import { ShoppingCart, Check, Loader2 } from 'lucide-react';
 import InteractiveJersey3D from './InteractiveJersey3D';
 import { Jersey, SIZES, COUNTRIES } from '../data/jerseys';
@@ -24,6 +24,9 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
   const [adding, setAdding]                     = useState(false);
   const [added, setAdded]                       = useState(false);
   const [error, setError]                       = useState('');
+  const addedTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(addedTimer.current), []);
 
   const color = jersey.colors[0];
   const accentRgb = hexToRgb(color.accent);
@@ -40,25 +43,30 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
     setAdding(true);
     setError('');
 
-    const { error: dbError } = await supabase.from('cart_items').insert({
-      session_id:  getSessionId(),
-      jersey_id:   jersey.id,
-      jersey_name: jersey.name,
-      color:       color.label,
-      size:        selectedSize,
-      country:     selectedCountry,
-      price:       jersey.price,
-      quantity:    1,
-    });
+    try {
+      if (!supabase) throw new Error('Cart is not configured');
+      const { error: dbError } = await supabase.from('cart_items').insert({
+        session_id:  getSessionId(),
+        jersey_id:   jersey.id,
+        jersey_name: jersey.name,
+        color:       color.label,
+        size:        selectedSize,
+        country:     selectedCountry,
+        price:       jersey.price,
+        quantity:    1,
+      });
 
-    setAdding(false);
-
-    if (dbError) {
-      setError('Could not add to cart. Please try again.');
-    } else {
+      if (dbError) throw dbError;
       setAdded(true);
       onAddSuccess();
-      setTimeout(() => setAdded(false), 2500);
+      clearTimeout(addedTimer.current);
+      addedTimer.current = setTimeout(() => setAdded(false), 2500);
+    } catch {
+      setError(supabase
+        ? 'Could not add to cart. Please try again.'
+        : 'Cart is currently unavailable. Please try again later.');
+    } finally {
+      setAdding(false);
     }
   };
 
