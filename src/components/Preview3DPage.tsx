@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import { Box, Loader2, Rotate3D, Shirt, ZoomIn } from 'lucide-react';
 import * as THREE from 'three';
 
@@ -8,43 +8,34 @@ interface JerseyAsset {
   id: string;
   name: string;
   model: string;
-  atlas: string;
-  front: string;
-  back: string;
+  atlas?: string;
+  front?: string;
+  back?: string;
+  bakedTexture?: string;
 }
+
+const PREVIEW_CACHE_BUSTER = `preview-${Date.now()}`;
 
 const FALLBACK_ASSETS: JerseyAsset[] = [
   {
     id: 'black-canarinho',
     name: 'Black Canarinho',
-    model: 'public/textures/final-3d/models/black-canarinho.glb',
-    atlas: 'public/textures/final-3d/texture-atlas/black-canarinho-atlas.png',
-    front: 'public/textures/Black Canarinho(front).png',
-    back: 'public/textures/Black Canarinho(Back).png',
+    model: 'public/textures/Black Canarinho.glb',
   },
   {
     id: 'golden-albiceleste',
     name: 'Golden Albiceleste',
-    model: 'public/textures/final-3d/models/golden-albiceleste.glb',
-    atlas: 'public/textures/final-3d/texture-atlas/golden-albiceleste-atlas.png',
-    front: 'public/textures/Golden Albiceleste(front).png',
-    back: 'public/textures/Golden Albiceleste(back).png',
+    model: 'public/textures/Golden Albiceleste.glb',
   },
   {
     id: 'le-phantom',
     name: 'Le Phantom',
-    model: 'public/textures/final-3d/models/le-phantom.glb',
-    atlas: 'public/textures/final-3d/texture-atlas/le-phantom-atlas.png',
-    front: 'public/textures/Le Phantom(Front).png',
-    back: 'public/textures/Le Phantom(Back).png',
+    model: 'public/textures/Le Phantom.glb',
   },
   {
     id: 'lusitano-prime',
     name: 'Lusitano Prime',
-    model: 'public/textures/final-3d/models/lusitano-prime.glb',
-    atlas: 'public/textures/final-3d/texture-atlas/lusitano-prime-atlas.png',
-    front: 'public/textures/Lusitano Prime(front).png',
-    back: 'public/textures/Lusitano Prime(back).png',
+    model: 'public/textures/Lusitano Prime.glb',
   },
 ];
 
@@ -52,194 +43,91 @@ function publicPath(path: string) {
   return `/${path.replace(/^public\//, '')}`;
 }
 
-function lerp(min: number, max: number, value: number) {
-  return min + (max - min) * value;
+function cacheBustedPath(path: string, cacheKey = PREVIEW_CACHE_BUSTER) {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${publicPath(path)}${separator}v=${cacheKey}`;
 }
 
-function createPatchGeometry(
-  columns: number,
-  rows: number,
-  getPosition: (u: number, v: number) => [number, number, number],
-  getUv: (u: number, v: number) => [number, number]
-) {
-  const positions: number[] = [];
-  const uvs: number[] = [];
-  const indices: number[] = [];
+function tuneMaterial(material: THREE.Material) {
+  const mat = material as THREE.MeshStandardMaterial;
 
-  for (let row = 0; row <= rows; row++) {
-    const v = row / rows;
-    for (let column = 0; column <= columns; column++) {
-      const u = column / columns;
-      const [x, y, z] = getPosition(u, v);
-      const [texU, texV] = getUv(u, v);
-      positions.push(x, y, z);
-      uvs.push(texU, texV);
-    }
+  if (mat.map) {
+    mat.map.colorSpace = THREE.SRGBColorSpace;
+    mat.map.needsUpdate = true;
   }
 
-  for (let row = 0; row < rows; row++) {
-    for (let column = 0; column < columns; column++) {
-      const a = row * (columns + 1) + column;
-      const b = a + 1;
-      const c = a + columns + 1;
-      const d = c + 1;
-      indices.push(a, c, b);
-      indices.push(b, c, d);
-    }
+  if ('roughness' in mat) {
+    mat.roughness = Math.max(mat.roughness ?? 0.5, 0.55);
   }
 
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-function createWornJerseyGeometry(facing: 'front' | 'back', aspect: number) {
-  const front = facing === 'front';
-  const height = 2.95;
-  const width = Math.min(3.25, height * aspect);
-  const zBase = front ? 0.13 : -0.13;
-
-  return createPatchGeometry(
-    96,
-    88,
-    (u, v) => {
-      const centeredX = u - 0.5;
-      const y = (0.5 - v) * height;
-      const shoulderZone = THREE.MathUtils.smoothstep(0.08, 0.28, v) * (1 - THREE.MathUtils.smoothstep(0.62, 0.82, v));
-      const hemFlare = THREE.MathUtils.smoothstep(0.72, 1, v) * 0.08;
-      const sleeveReach = Math.max(0, Math.abs(centeredX) - 0.27);
-      const sleeveDrop = sleeveReach * 0.28 * shoulderZone;
-      const xScale = 1 - Math.abs(v - 0.45) * 0.06 + hemFlare;
-      const x = centeredX * width * xScale;
-      const torsoCurve = Math.cos(THREE.MathUtils.clamp(centeredX / 0.5, -1, 1) * Math.PI * 0.5);
-      const chestBulge = Math.max(0, torsoCurve) * (0.11 + shoulderZone * 0.025);
-      const sleeveWrap = sleeveReach * 0.25 * shoulderZone;
-      const fabricRipple = Math.sin(u * Math.PI * 6) * Math.sin(v * Math.PI * 3) * 0.006;
-      const z = zBase + (front ? 1 : -1) * (chestBulge - sleeveWrap + fabricRipple);
-
-      return [x, y - sleeveDrop, z];
-    },
-    (u, v) => [u, v]
-  );
-}
-
-function createSideBandGeometry(side: 'left' | 'right') {
-  const sign = side === 'right' ? 1 : -1;
-
-  return createPatchGeometry(
-    12,
-    58,
-    (u, v) => {
-      const y = lerp(1.18, -1.3, v);
-      const width = lerp(1.28, 1.18, v);
-      const x = sign * width;
-      const z = lerp(0.18, -0.18, u);
-      return [x, y, z];
-    },
-    (u, v) => {
-      const edgeU = side === 'right' ? lerp(0.94, 1, u) : lerp(0, 0.06, u);
-      return [edgeU, v];
-    }
-  );
-}
-
-function WornJerseySurface({ asset }: { asset: JerseyAsset }) {
-  const [frontTexture, backTexture] = useLoader(THREE.TextureLoader, [
-    publicPath(asset.front),
-    publicPath(asset.back),
-  ]);
-  const modelRef = useRef<THREE.Group>(null);
-  const aspect = useMemo(() => {
-    const image = frontTexture.image as HTMLImageElement | HTMLCanvasElement | undefined;
-    return image && image.height > 0 ? image.width / image.height : 1.1;
-  }, [frontTexture]);
-  const geometries = useMemo(
-    () => ({
-      front: createWornJerseyGeometry('front', aspect),
-      back: createWornJerseyGeometry('back', aspect),
-      leftSide: createSideBandGeometry('left'),
-      rightSide: createSideBandGeometry('right'),
-    }),
-    [aspect]
-  );
-
-  useMemo(() => {
-    [frontTexture, backTexture].forEach((texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.flipY = false;
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
-      texture.needsUpdate = true;
-    });
-  }, [frontTexture, backTexture]);
-
-  const frontMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        map: frontTexture,
-        transparent: true,
-        alphaTest: 0.08,
-        roughness: 0.62,
-        metalness: 0.02,
-        side: THREE.DoubleSide,
-      }),
-    [frontTexture]
-  );
-  const backMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        map: backTexture,
-        transparent: true,
-        alphaTest: 0.08,
-        roughness: 0.62,
-        metalness: 0.02,
-        side: THREE.DoubleSide,
-      }),
-    [backTexture]
-  );
-  const bodyMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#07070a',
-        roughness: 0.8,
-        metalness: 0.02,
-        transparent: true,
-        opacity: 0.28,
-      }),
-    []
-  );
-
-  useFrame((state) => {
-    if (!modelRef.current) return;
-    modelRef.current.position.y = Math.sin(state.clock.getElapsedTime() * 0.7) * 0.025;
-  });
-
-  return (
-    <group ref={modelRef} rotation={[0, 0, 0]}>
-      <mesh geometry={geometries.front} material={frontMaterial} renderOrder={3} />
-      <mesh geometry={geometries.back} material={backMaterial} rotation={[0, Math.PI, 0]} renderOrder={2} />
-      <mesh geometry={geometries.leftSide} material={frontMaterial} renderOrder={1} />
-      <mesh geometry={geometries.rightSide} material={frontMaterial} renderOrder={1} />
-      <mesh position={[0, -0.08, 0]} scale={[0.72, 1.35, 0.33]}>
-        <capsuleGeometry args={[0.72, 1.7, 18, 32]} />
-        <meshStandardMaterial {...bodyMaterial} />
-      </mesh>
-    </group>
-  );
+  mat.side = THREE.FrontSide;
+  mat.needsUpdate = true;
 }
 
 function PreviewJerseyModel({ asset }: { asset: JerseyAsset }) {
-  return <WornJerseySurface asset={asset} />;
+  const modelPath = cacheBustedPath(asset.model, `${asset.id}-${PREVIEW_CACHE_BUSTER}`);
+  const { scene } = useGLTF(modelPath, true);
+  const modelRef = useRef<THREE.Group>(null);
+  const clonedScene = useMemo(() => {
+    const cloned = scene.clone(true);
+
+    cloned.traverse((child) => {
+      if (!(child as THREE.Mesh).isMesh) return;
+
+      const mesh = child as THREE.Mesh;
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+
+      if (Array.isArray(mesh.material)) {
+        mesh.material = mesh.material.map((material) => {
+          const clonedMaterial = material.clone();
+          tuneMaterial(clonedMaterial);
+          return clonedMaterial;
+        });
+      } else {
+        const clonedMaterial = mesh.material.clone();
+        tuneMaterial(clonedMaterial);
+        mesh.material = clonedMaterial;
+      }
+    });
+
+    return cloned;
+  }, [scene]);
+  const modelMetrics = useMemo(() => {
+    clonedScene.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    return {
+      center,
+      scale: 2.35 / (size.y || 1),
+    };
+  }, [clonedScene]);
+
+  useFrame((state) => {
+    if (!modelRef.current) return;
+    modelRef.current.position.y = Math.sin(state.clock.getElapsedTime() * 0.7) * 0.02;
+  });
+
+  return (
+    <group ref={modelRef} scale={modelMetrics.scale}>
+      <primitive
+        object={clonedScene}
+        position={[-modelMetrics.center.x, -modelMetrics.center.y, -modelMetrics.center.z]}
+      />
+    </group>
+  );
 }
 
 function PreviewCanvas({ asset }: { asset: JerseyAsset }) {
   return (
     <Canvas
-      camera={{ position: [0, 0, 2.15], fov: 42 }}
-      gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+      dpr={[1, 1.25]}
+      camera={{ position: [0, 0, 4.4], fov: 34 }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
     >
       <color attach="background" args={['#08080c']} />
       <ambientLight intensity={1.8} />
@@ -263,8 +151,8 @@ function PreviewCanvas({ asset }: { asset: JerseyAsset }) {
       <OrbitControls
         enableZoom
         enablePan={false}
-        minDistance={1.0}
-        maxDistance={4.0}
+        minDistance={2.4}
+        maxDistance={7.5}
         target={[0, 0, 0]}
         makeDefault
       />
@@ -280,7 +168,9 @@ export default function Preview3DPage() {
   useEffect(() => {
     let mounted = true;
 
-    fetch('/textures/final-3d/manifest.json')
+    fetch(`/textures/final-3d/manifest.json?v=${PREVIEW_CACHE_BUSTER}`, {
+      cache: 'no-store',
+    })
       .then((response) => {
         if (!response.ok) throw new Error('Could not load final 3D manifest');
         return response.json() as Promise<JerseyAsset[]>;
@@ -355,46 +245,54 @@ export default function Preview3DPage() {
         </a>
       </header>
 
-      <nav className="absolute bottom-5 left-1/2 z-20 flex w-[min(92vw,760px)] -translate-x-1/2 items-center justify-center gap-2 rounded-full border border-white/10 bg-black/70 p-2 backdrop-blur-xl">
-        {assets.map((asset) => {
-          const selected = asset.id === selectedAsset?.id;
-
-          return (
-            <button
-              key={asset.id}
-              type="button"
-              onClick={() => setSelectedId(asset.id)}
-              className="min-w-0 flex-1 rounded-full px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] transition sm:text-xs"
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                background: selected ? 'rgba(0,212,170,0.14)' : 'transparent',
-                border: selected ? '1px solid rgba(0,212,170,0.55)' : '1px solid transparent',
-                color: selected ? '#00d4aa' : '#8a8a9a',
-                boxShadow: selected ? '0 0 18px rgba(0,212,170,0.18)' : 'none',
-              }}
-            >
-              {asset.name}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="absolute bottom-24 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a8a9a] backdrop-blur-md">
-        <span className="flex items-center gap-1.5">
-          <Rotate3D size={13} />
-          Drag
-        </span>
-        <span className="h-3 w-px bg-white/10" />
-        <span className="flex items-center gap-1.5">
-          <ZoomIn size={13} />
-          Zoom
-        </span>
-        <span className="h-3 w-px bg-white/10" />
-        <span className="flex items-center gap-1.5">
-          <Shirt size={13} />
-          {loadingManifest ? 'Loading assets' : `${assets.length} jerseys`}
-        </span>
+      <div className="pointer-events-none absolute inset-x-0 bottom-36 z-20 flex justify-center px-4">
+        <div className="flex items-center gap-5 rounded-full border border-white/10 bg-black/45 px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-[#a0a0b0] backdrop-blur-md">
+          <span className="flex items-center gap-2">
+            <Rotate3D size={14} />
+            Drag
+          </span>
+          <span className="h-4 w-px bg-white/10" />
+          <span className="flex items-center gap-2">
+            <ZoomIn size={14} />
+            Zoom
+          </span>
+          <span className="h-4 w-px bg-white/10" />
+          <span className="flex items-center gap-2">
+            <Shirt size={14} />
+            4 jerseys
+          </span>
+        </div>
       </div>
+
+      <div className="absolute bottom-8 left-1/2 z-20 w-[min(920px,calc(100%-2rem))] -translate-x-1/2 rounded-[28px] border border-white/10 bg-black/55 p-3 backdrop-blur-md">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {assets.map((asset) => {
+            const active = asset.id === selectedId;
+
+            return (
+              <button
+                key={asset.id}
+                type="button"
+                onClick={() => setSelectedId(asset.id)}
+                className={`rounded-full border px-4 py-3 text-center text-sm uppercase tracking-[0.14em] transition ${
+                  active
+                    ? 'border-[#00d4aa]/60 bg-[#00d4aa]/10 text-[#00d4aa]'
+                    : 'border-transparent bg-transparent text-[#9d9dad] hover:border-white/10 hover:text-white'
+                }`}
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}
+              >
+                {asset.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {loadingManifest ? (
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 text-[10px] uppercase tracking-[0.18em] text-[#6d6d7a]">
+          Refreshing preview manifest
+        </div>
+      ) : null}
     </main>
   );
 }

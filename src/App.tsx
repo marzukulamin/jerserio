@@ -17,9 +17,7 @@ export default function App() {
   const [introExiting,    setIntroExiting]     = useState(false);
   const [jerseyIndex,     setJerseyIndex]      = useState(0);
   const [carouselDir,     setCarouselDir]      = useState<CarouselDir>(null);
-  const [carouselKey,     setCarouselKey]      = useState(0);
   const [priceKey,        setPriceKey]         = useState(0);
-  const [selectedColorIdx,setSelectedColorIdx] = useState(0);
   const [toast,           setToast]            = useState(false);
   const [toastHiding,     setToastHiding]      = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -55,17 +53,13 @@ export default function App() {
     if (carouselDir) return; // debounce mid-animation
     setCarouselDir(dir);
 
-    setTimeout(() => {
-      setJerseyIndex((prev) => {
-        if (dir === 'next') return (prev + 1) % JERSEYS.length;
-        return (prev - 1 + JERSEYS.length) % JERSEYS.length;
-      });
-      setSelectedColorIdx(0);
-      setCarouselKey((k) => k + 1);
-      setPriceKey((k) => k + 1);
-    }, 420);
+    setJerseyIndex((prev) => {
+      if (dir === 'next') return (prev + 1) % JERSEYS.length;
+      return (prev - 1 + JERSEYS.length) % JERSEYS.length;
+    });
+    setPriceKey((k) => k + 1);
 
-    setTimeout(() => setCarouselDir(null), 880);
+    setTimeout(() => setCarouselDir(null), 480);
   }, [carouselDir]);
 
   /* ── CART TOAST ── */
@@ -80,12 +74,6 @@ export default function App() {
   }, []);
 
   /* ── CAROUSEL CLASS ── */
-  const carouselClass = carouselDir === 'next'
-    ? (carouselDir && carouselKey ? 'c-enter-r' : '')
-    : carouselDir === 'prev'
-    ? (carouselDir && carouselKey ? 'c-enter-l' : '')
-    : '';
-
   return (
     <div
       className="relative w-full h-full overflow-hidden select-none"
@@ -117,9 +105,7 @@ export default function App() {
 
         {phase === 'detail' && (
           <ProductDetail
-            key={carouselKey}
             jersey={jersey}
-            carouselClass={carouselClass}
             onAddSuccess={handleAddSuccess}
           />
         )}
@@ -133,7 +119,7 @@ export default function App() {
         currentIndex={jerseyIndex}
         onPrev={() => navigate('prev')}
         onNext={() => navigate('next')}
-        selectedColorIndex={selectedColorIdx}
+        selectedColorIndex={0}
         priceKey={priceKey}
       />
 

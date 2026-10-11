@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabase';
 
 interface ProductDetailProps {
   jersey: Jersey;
-  carouselClass: string;
   onAddSuccess: () => void;
 }
 
@@ -19,15 +18,22 @@ function getSessionId(): string {
   return id;
 }
 
-export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: ProductDetailProps) {
-  const [selectedColorIdx, setSelectedColorIdx] = useState(0);
+export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailProps) {
   const [selectedSize, setSelectedSize]         = useState('M');
   const [selectedCountry, setSelectedCountry]   = useState('United States');
   const [adding, setAdding]                     = useState(false);
   const [added, setAdded]                       = useState(false);
   const [error, setError]                       = useState('');
 
-  const color = jersey.colors[selectedColorIdx];
+  const color = jersey.colors[0];
+  const accentRgb = hexToRgb(color.accent);
+  const secondaryRgb = hexToRgb(color.secondary);
+  const primaryRgb = hexToRgb(color.primary);
+  const accentSoft = rgba(accentRgb, 0.18);
+  const accentMedium = rgba(accentRgb, 0.34);
+  const accentStrong = rgba(accentRgb, 0.62);
+  const secondarySoft = rgba(secondaryRgb, 0.4);
+  const primarySoft = rgba(primaryRgb, 0.84);
 
   const handleAddToCart = async () => {
     if (adding) return;
@@ -58,11 +64,32 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
 
   return (
     <div className="absolute inset-0 flex items-center detail-enter overflow-hidden">
-      {/* Background gradient */}
+      {/* Premium jersey-aware atmosphere */}
+      <div
+        className="absolute inset-0 pointer-events-none transition-all duration-700"
+        style={{
+          background: `
+            radial-gradient(ellipse 34% 78% at 50% 47%, ${accentMedium} 0%, ${accentSoft} 26%, transparent 61%),
+            radial-gradient(ellipse 28% 58% at 41% 53%, ${secondarySoft} 0%, transparent 62%),
+            radial-gradient(ellipse 34% 68% at 61% 49%, ${rgba(accentRgb, 0.12)} 0%, transparent 64%),
+            linear-gradient(115deg, ${primarySoft} 0%, #040407 38%, ${rgba(secondaryRgb, 0.3)} 72%, #040407 100%)
+          `,
+        }}
+      />
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse 50% 70% at 45% 55%, ${color.accent}0d 0%, transparent 65%)`,
+          background: `
+            linear-gradient(90deg, rgba(4,4,7,0.88) 0%, rgba(4,4,7,0.2) 30%, rgba(4,4,7,0.08) 50%, rgba(4,4,7,0.2) 70%, rgba(4,4,7,0.88) 100%),
+            radial-gradient(ellipse 90% 88% at 50% 52%, transparent 0%, transparent 48%, rgba(0,0,0,0.72) 100%)
+          `,
+        }}
+      />
+      <div
+        className="absolute pointer-events-none top-[12%] bottom-[13%] left-[43%] w-[11%] opacity-40 blur-sm"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, ${rgba(accentRgb, 0.08)} 18%, ${rgba(accentRgb, 0.28)} 50%, ${rgba(accentRgb, 0.08)} 82%, transparent 100%)`,
+          transform: 'skewX(-3deg)',
         }}
       />
 
@@ -104,7 +131,8 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
               fontWeight: 900,
               textTransform: 'uppercase',
               letterSpacing: '-0.01em',
-              color: '#00d4aa',
+              color: color.accent,
+              textShadow: `0 0 28px ${rgba(accentRgb, 0.28)}`,
             }}
           >
             2026
@@ -126,32 +154,33 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
 
       {/* CENTER: 3D Interactive Jersey */}
       <div
-        className={`absolute z-20 flex items-center justify-center ${carouselClass}`}
+        className="absolute z-20 flex items-center justify-center"
         style={{
-          left: '24%',
-          right: '33%',
-          top: '2%',
-          bottom: '2%',
+          left: '22.5%',
+          right: '23.5%',
+          top: '0%',
+          bottom: '6%',
         }}
       >
         {/* Glowing backdrop layer (CSS-filter safe) */}
         <div 
-          className="absolute w-64 h-64 rounded-full pointer-events-none filter blur-[60px] opacity-40 animate-pulse"
+          className="absolute h-[58vh] w-[58vh] max-h-[620px] max-w-[620px] rounded-full pointer-events-none filter blur-[72px] opacity-60 animate-pulse"
           style={{
-            background: `radial-gradient(circle, ${color.accent} 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${accentStrong} 0%, ${accentSoft} 38%, transparent 72%)`,
             zIndex: 10
           }}
         />
         
         {/* WebGL Canvas container (No CSS filters applied directly) */}
-        <div className="w-full h-full jersey-detail-enter relative z-20">
+        <div className="w-full h-full relative z-20">
           <Suspense fallback={
-            <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-[#00d4aa] text-xs font-bold tracking-widest uppercase">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-xs font-bold tracking-widest uppercase" style={{ color: color.accent }}>
               <Loader2 className="animate-spin" size={24} />
               <span>Loading 3D Jersey...</span>
             </div>
           }>
             <InteractiveJersey3D
+              key={jersey.id}
               jerseyId={jersey.id}
             />
           </Suspense>
@@ -167,7 +196,8 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
           className="rounded-2xl p-6 flex flex-col gap-5"
           style={{
             background: 'rgba(14,14,22,0.85)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: `1px solid ${rgba(accentRgb, 0.22)}`,
+            boxShadow: `0 24px 80px rgba(0,0,0,0.45), 0 0 42px ${rgba(accentRgb, 0.09)}`,
             backdropFilter: 'blur(12px)',
           }}
         >
@@ -188,52 +218,14 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
               </div>
             </div>
             <div
-              className="text-[#00d4aa] text-2xl"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900 }}
+              className="text-2xl"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, color: color.accent }}
             >
               {jersey.price}$
             </div>
           </div>
 
           <div className="h-px bg-white/5" />
-
-          {/* COLOR */}
-          <div>
-            <FormLabel>COLOR</FormLabel>
-            <div className="flex items-center gap-2 mt-2">
-              {jersey.colors.map((c, i) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedColorIdx(i)}
-                  className="flex flex-col items-center gap-1.5 group"
-                  title={c.label}
-                >
-                  <div
-                    className="w-7 h-7 rounded-full border-2 transition-all duration-200"
-                    style={{
-                      background: `linear-gradient(135deg, ${c.secondary}, ${c.accent})`,
-                      borderColor: i === selectedColorIdx ? '#00d4aa' : 'rgba(255,255,255,0.15)',
-                      boxShadow: i === selectedColorIdx ? `0 0 10px ${c.accent}60` : 'none',
-                      transform: i === selectedColorIdx ? 'scale(1.15)' : 'scale(1)',
-                    }}
-                  />
-                  <div
-                    className="h-0.5 rounded-full transition-all duration-200"
-                    style={{
-                      width: i === selectedColorIdx ? 24 : 0,
-                      background: '#00d4aa',
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-            <div
-              className="mt-1 text-[10px] text-[#8a8a9a] tracking-widest"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              {color.label}
-            </div>
-          </div>
 
           {/* SIZE */}
           <div>
@@ -253,10 +245,10 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
                       ? 'transparent'
                       : 'transparent',
                     border: s === selectedSize
-                      ? `2px solid #00d4aa`
+                      ? `2px solid ${color.accent}`
                       : '1.5px solid rgba(255,255,255,0.15)',
-                    color: s === selectedSize ? '#00d4aa' : 'rgba(255,255,255,0.5)',
-                    boxShadow: s === selectedSize ? '0 0 12px rgba(0,212,170,0.25)' : 'none',
+                    color: s === selectedSize ? color.accent : 'rgba(255,255,255,0.5)',
+                    boxShadow: s === selectedSize ? `0 0 14px ${rgba(accentRgb, 0.24)}` : 'none',
                     transform: s === selectedSize ? 'scale(1.1)' : 'scale(1)',
                   }}
                 >
@@ -284,7 +276,7 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
                   border: '1.5px solid rgba(255,255,255,0.1)',
                   color: 'white',
                 }}
-                onFocus={(e) => { e.target.style.borderColor = 'rgba(0,212,170,0.5)'; }}
+                onFocus={(e) => { e.target.style.borderColor = rgba(accentRgb, 0.5); }}
                 onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               >
                 {COUNTRIES.map((c) => (
@@ -322,11 +314,11 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
               background: added
-                ? 'rgba(0,212,170,0.15)'
-                : 'rgba(0,212,170,0.08)',
-              border: `1.5px solid ${added ? '#00d4aa' : 'rgba(0,212,170,0.4)'}`,
-              color: '#00d4aa',
-              boxShadow: added ? '0 0 20px rgba(0,212,170,0.2)' : 'none',
+                ? rgba(accentRgb, 0.16)
+                : rgba(accentRgb, 0.08),
+              border: `1.5px solid ${added ? color.accent : rgba(accentRgb, 0.4)}`,
+              color: color.accent,
+              boxShadow: added ? `0 0 22px ${rgba(accentRgb, 0.22)}` : 'none',
             }}
           >
             {added ? (
@@ -353,6 +345,26 @@ export default function ProductDetail({ jersey, carouselClass, onAddSuccess }: P
       </div>
     </div>
   );
+}
+
+function hexToRgb(hex: string) {
+  const normalized = hex.replace('#', '');
+  const value = parseInt(
+    normalized.length === 3
+      ? normalized.split('').map((char) => char + char).join('')
+      : normalized,
+    16,
+  );
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function rgba({ r, g, b }: { r: number; g: number; b: number }, alpha: number) {
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function FormLabel({ children }: { children: ReactNode }) {

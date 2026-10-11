@@ -89,7 +89,7 @@ export default function BottomBar({
           <button
             className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center
               text-[#040407] text-xs font-bold"
-            style={{ background: '#00d4aa' }}
+            style={{ background: color.accent }}
           >
             +
           </button>
@@ -104,8 +104,9 @@ export default function BottomBar({
               <button
                 onClick={onPrev}
                 className="w-8 h-8 flex items-center justify-center rounded-full border border-white/20
-                  hover:border-[#00d4aa]/60 hover:bg-[#00d4aa]/10 text-white/70 hover:text-white
+                  text-white/70 hover:text-white
                   transition-all duration-200"
+                style={{ boxShadow: `0 0 0 0 ${color.accent}` }}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -128,8 +129,9 @@ export default function BottomBar({
               <button
                 onClick={onNext}
                 className="w-8 h-8 flex items-center justify-center rounded-full border border-white/20
-                  hover:border-[#00d4aa]/60 hover:bg-[#00d4aa]/10 text-white/70 hover:text-white
+                  text-white/70 hover:text-white
                   transition-all duration-200"
+                style={{ boxShadow: `0 0 0 0 ${color.accent}` }}
               >
                 <ChevronRight size={16} />
               </button>
@@ -144,7 +146,7 @@ export default function BottomBar({
                   style={{
                     width: i === currentIndex ? 18 : 5,
                     height: 4,
-                    background: i === currentIndex ? '#00d4aa' : 'rgba(255,255,255,0.2)',
+                    background: i === currentIndex ? color.accent : 'rgba(255,255,255,0.2)',
                   }}
                 />
               ))}
