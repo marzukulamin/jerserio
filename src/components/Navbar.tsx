@@ -1,68 +1,30 @@
-import { Search, User } from 'lucide-react';
+import { Search, ShoppingCart, User } from 'lucide-react';
+import { type Portal } from './DemoPortal';
+import { assetUrl } from '../lib/demo';
 
-interface NavbarProps {
+interface Props {
   visible: boolean;
+  onOpen: (portal: Portal) => void;
+  onHome: () => void;
+  cartCount: number;
 }
 
-export default function Navbar({ visible }: NavbarProps) {
-  const links = ['HOME', 'HISTORY', 'COLLECTIONS', 'SHOP'];
-
-  return (
-    <nav
-      className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 ${
-        visible ? 'nav-enter' : 'opacity-0'
-      }`}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-2 cursor-pointer">
-        <img
-          src="/1781254746556.png"
-          alt="JERSERIO"
-          style={{
-            width: 42,
-            height: 42,
-            objectFit: 'contain',
-            borderRadius: 6,
-            filter: 'drop-shadow(0 0 8px rgba(180,140,60,0.4))',
-          }}
-        />
-        <span
-          className="font-display text-white text-sm tracking-[0.25em]"
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.25em' }}
-        >
-          JERSERIO
-        </span>
-      </div>
-
-      {/* Nav Links */}
-      <div className="flex items-center gap-8">
-        {links.map((link, i) => (
-          <button
-            key={link}
-            className={`font-label text-xs tracking-widest transition-colors duration-200 ${
-              i === 0 ? 'text-white' : 'text-[#8a8a9a] hover:text-white'
-            }`}
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.15em' }}
-          >
-            {link}
-            {i === 0 && (
-              <div className="mt-0.5 h-px bg-[#00d4aa] w-full" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Icons */}
-      <div className="flex items-center gap-3">
-        <button className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center
-          hover:border-[#00d4aa]/60 hover:bg-[#00d4aa]/10 transition-all duration-200">
-          <Search size={14} color="white" />
-        </button>
-        <button className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center
-          hover:border-[#00d4aa]/60 hover:bg-[#00d4aa]/10 transition-all duration-200">
-          <User size={14} color="white" />
-        </button>
-      </div>
-    </nav>
-  );
+export default function Navbar({ visible, onOpen, onHome, cartCount }: Props) {
+  return <nav aria-label="Main navigation" style={{ visibility: visible ? 'visible' : 'hidden' }} className={`site-nav absolute top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 ${visible ? 'nav-enter' : 'opacity-0'}`}>
+    <button onClick={onHome} className="flex items-center gap-2" aria-label="Jerserio home">
+      <img src={assetUrl('1781254746556.png')} alt="" width="42" height="42" className="rounded-md object-contain" />
+      <span className="brand-label font-bold tracking-[0.25em]">JERSERIO</span>
+    </button>
+    <div className="nav-links flex items-center gap-6">
+      <button onClick={onHome}>Home</button>
+      <button onClick={() => onOpen('history')}>History</button>
+      <button onClick={() => onOpen('collections')}>Collections</button>
+      <button onClick={() => onOpen('collections')}>Shop</button>
+    </div>
+    <div className="flex gap-2">
+      <button className="demo-icon" aria-label="Search jerseys" onClick={() => onOpen('search')}><Search size={17} /></button>
+      <button className="demo-icon" aria-label="Open demo profile" onClick={() => onOpen('profile')}><User size={17} /></button>
+      <button className="demo-icon !w-auto px-3 gap-2" aria-label={`Open cart, ${cartCount} items`} onClick={() => onOpen('cart')}><ShoppingCart size={17} /><span>{cartCount}</span></button>
+    </div>
+  </nav>;
 }

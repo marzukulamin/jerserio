@@ -2,23 +2,16 @@ import { useEffect, useRef, useState, type ReactNode, Suspense } from 'react';
 import { ShoppingCart, Check, Loader2 } from 'lucide-react';
 import InteractiveJersey3D from './InteractiveJersey3D';
 import { Jersey, SIZES, COUNTRIES } from '../data/jerseys';
-import { supabase } from '../lib/supabase';
+import { type CartItem } from '../lib/demo';
 
 interface ProductDetailProps {
   jersey: Jersey;
   onAddSuccess: () => void;
+  onAddItem: (item: Omit<CartItem, 'quantity'>) => void;
 }
 
-function getSessionId(): string {
-  let id = sessionStorage.getItem('jerserio_session');
-  if (!id) {
-    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    sessionStorage.setItem('jerserio_session', id);
-  }
-  return id;
-}
 
-export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailProps) {
+export default function ProductDetail({ jersey, onAddSuccess, onAddItem }: ProductDetailProps) {
   const [selectedSize, setSelectedSize]         = useState('M');
   const [selectedCountry, setSelectedCountry]   = useState('United States');
   const [adding, setAdding]                     = useState(false);
@@ -44,34 +37,20 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
     setError('');
 
     try {
-      if (!supabase) throw new Error('Cart is not configured');
-      const { error: dbError } = await supabase.from('cart_items').insert({
-        session_id:  getSessionId(),
-        jersey_id:   jersey.id,
-        jersey_name: jersey.name,
-        color:       color.label,
-        size:        selectedSize,
-        country:     selectedCountry,
-        price:       jersey.price,
-        quantity:    1,
-      });
-
-      if (dbError) throw dbError;
+      onAddItem({ jerseyId: jersey.id, size: selectedSize, country: selectedCountry });
       setAdded(true);
       onAddSuccess();
       clearTimeout(addedTimer.current);
       addedTimer.current = setTimeout(() => setAdded(false), 2500);
     } catch {
-      setError(supabase
-        ? 'Could not add to cart. Please try again.'
-        : 'Cart is currently unavailable. Please try again later.');
+      setError('Could not add to cart. Please try again.');
     } finally {
       setAdding(false);
     }
   };
 
   return (
-    <div className="absolute inset-0 flex items-center detail-enter overflow-hidden">
+    <div className="absolute inset-0 flex items-center detail-enter overflow-hidden product-layout">
       {/* Premium jersey-aware atmosphere */}
       <div
         className="absolute inset-0 pointer-events-none transition-all duration-700"
@@ -103,7 +82,7 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
 
       {/* LEFT: Special Edition text */}
       <div
-        className="absolute left-0 bottom-0 top-0 flex flex-col justify-center z-30"
+        className="product-story absolute left-0 bottom-0 top-0 flex flex-col justify-center z-30"
         style={{ left: '5%', width: '26%' }}
       >
         <div className="flex flex-col gap-0" style={{ lineHeight: 0.85 }}>
@@ -162,7 +141,7 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
 
       {/* CENTER: 3D Interactive Jersey */}
       <div
-        className="absolute z-20 flex items-center justify-center"
+        className="product-model absolute z-20 flex items-center justify-center"
         style={{
           left: '22.5%',
           right: '23.5%',
@@ -197,7 +176,7 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
 
       {/* RIGHT: Product form */}
       <div
-        className="absolute top-0 bottom-0 z-30 flex flex-col justify-center form-enter"
+        className="product-form absolute top-0 bottom-0 z-30 flex flex-col justify-center form-enter"
         style={{ right: '3%', width: '30%' }}
       >
         <div
@@ -242,6 +221,7 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
               {SIZES.map((s) => (
                 <button
                   key={s}
+                  aria-pressed={s === selectedSize}
                   onClick={() => setSelectedSize(s)}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs
                     transition-all duration-200 font-bold"
@@ -271,6 +251,7 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
             <FormLabel>SHIP TO</FormLabel>
             <div className="relative mt-2">
               <select
+                aria-label="Shipping country"
                 value={selectedCountry}
                 onChange={(e) => setSelectedCountry(e.target.value)}
                 className="w-full rounded-xl px-3 py-2.5 text-white text-xs appearance-none cursor-pointer
@@ -305,7 +286,7 @@ export default function ProductDetail({ jersey, onAddSuccess }: ProductDetailPro
 
           {/* Error */}
           {error && (
-            <p className="text-red-400 text-xs" style={{ fontFamily: 'Barlow, sans-serif' }}>
+            <p role="alert" className="text-red-400 text-xs" style={{ fontFamily: 'Barlow, sans-serif' }}>
               {error}
             </p>
           )}

@@ -1,3 +1,4 @@
+import { assetUrl } from '../lib/demo';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
@@ -39,7 +40,7 @@ const FALLBACK_ASSETS: JerseyAsset[] = [
 ];
 
 function publicPath(path: string) {
-  return `/${path.replace(/^public\//, '')}`;
+  return assetUrl(path);
 }
 
 function tuneMaterial(material: THREE.Material) {
@@ -170,7 +171,7 @@ export default function Preview3DPage() {
   useEffect(() => {
     let mounted = true;
 
-    fetch('/textures/final-3d/manifest.json', {
+    fetch(assetUrl('textures/final-3d/manifest.json'), {
       cache: 'no-store',
     })
       .then((response) => {
@@ -245,7 +246,7 @@ export default function Preview3DPage() {
         </div>
 
         <a
-          href="/"
+          href={import.meta.env.BASE_URL}
           className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8a8a9a] transition hover:border-[#00d4aa]/50 hover:text-[#00d4aa]"
           style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
         >

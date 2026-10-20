@@ -6,6 +6,8 @@ import RightSidebar  from './components/RightSidebar';
 import HeroSection   from './components/HeroSection';
 import ProductDetail from './components/ProductDetail';
 import BottomBar     from './components/BottomBar';
+import DemoPortal, { type Portal } from './components/DemoPortal';
+import { useDemoCart } from './lib/demo';
 import { JERSEYS }   from './data/jerseys';
 
 type Phase = 'intro' | 'hero' | 'zoom' | 'detail';
@@ -13,7 +15,12 @@ type Phase = 'intro' | 'hero' | 'zoom' | 'detail';
 type CarouselDir = 'next' | 'prev' | null;
 
 export default function App() {
-  const [phase,           setPhase]           = useState<Phase>('intro');
+  const [phase,           setPhase]           = useState<Phase>(new URLSearchParams(window.location.search).has('demo') ? 'detail' : 'intro');
+  const [portal, setPortal] = useState<Portal | null>(null);
+  const cart = useDemoCart();
+  const selectJersey = (index: number) => {
+    setJerseyIndex(index); setPhase('detail'); setIntroExiting(false); setPortal(null);
+  };
   const [introExiting,    setIntroExiting]     = useState(false);
   const [jerseyIndex,     setJerseyIndex]      = useState(0);
   const [carouselDir,     setCarouselDir]      = useState<CarouselDir>(null);
@@ -35,11 +42,12 @@ export default function App() {
 
   /* ── INTRO → HERO ── */
   useEffect(() => {
+    if (phase !== 'intro') return;
     // Start intro exit at 2.2s, switch to hero at 2.8s
     const t1 = setTimeout(() => setIntroExiting(true), 2200);
     const t2 = setTimeout(() => setPhase('hero'),       2800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  }, [phase]);
 
   /* ── HERO → ZOOM → DETAIL ── */
   useEffect(() => {
@@ -88,13 +96,17 @@ export default function App() {
       className="relative w-full h-full overflow-hidden select-none"
       style={{ background: '#040407' }}
     >
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      {phase !== 'detail' && <button className="skip-intro" onClick={() => { setPhase('detail'); setIntroExiting(false); }}>Skip intro</button>}
+      <div className="demo-notice">Portfolio demo · no real purchases</div>
+      {portal && <DemoPortal key={portal} portal={portal} onClose={() => setPortal(null)} onSelect={selectJersey} items={cart.items} update={cart.update} clear={cart.clear} storageWarning={cart.storageWarning} />}
       {/* ── INTRO OVERLAY ── */}
-      {(phase === 'intro' || introExiting) && (
+      {phase === 'intro' && (
         <IntroScreen exiting={introExiting} />
       )}
 
       {/* ── NAVBAR ── */}
-      <Navbar visible={uiVisible} />
+      <Navbar visible={uiVisible} onOpen={setPortal} onHome={() => selectJersey(0)} cartCount={cart.items.reduce((sum, item) => sum + item.quantity, 0)} />
 
       {/* ── LEFT SIDEBAR ── */}
       <LeftSidebar visible={uiVisible} />
@@ -104,10 +116,11 @@ export default function App() {
         visible={uiVisible}
         currentJerseyIndex={jerseyIndex}
         totalJerseys={JERSEYS.length}
+        onNext={() => { setPhase('detail'); navigate('next'); }}
       />
 
       {/* ── MAIN CONTENT ── */}
-      <div className="absolute inset-0" style={{ top: 64, bottom: 56 }}>
+      <main id="main-content" tabIndex={-1} className="app-main absolute inset-0" style={{ top: 88, bottom: 96 }}>
         {(phase === 'hero' || phase === 'zoom') && (
           <HeroSection jersey={jersey} phase={phase === 'zoom' ? 'zoom' : 'hero'} />
         )}
@@ -117,9 +130,10 @@ export default function App() {
             key={jersey.id}
             jersey={jersey}
             onAddSuccess={handleAddSuccess}
+            onAddItem={cart.add}
           />
         )}
-      </div>
+      </main>
 
       {/* ── BOTTOM BAR ── */}
       <BottomBar
@@ -131,11 +145,13 @@ export default function App() {
         onNext={() => navigate('next')}
         selectedColorIndex={0}
         priceKey={priceKey}
+        onOpenCart={() => setPortal('cart')}
       />
 
       {/* ── CART TOAST ── */}
       {toast && (
         <div
+          role="status"
           className={`absolute top-20 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-xl
             flex items-center gap-2 text-xs ${toastHiding ? 'toast-hide' : 'toast-show'}`}
           style={{

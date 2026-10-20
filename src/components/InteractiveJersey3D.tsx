@@ -1,4 +1,5 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { assetUrl } from '../lib/demo';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -20,7 +21,7 @@ const AUTO_ROTATION_START_DELAY = 1.6;
 
 function getModelPath(jerseyId: string) {
   const path = MODEL_PATHS[jerseyId] ?? MODEL_PATHS['golden-albiceleste'];
-  return path;
+  return assetUrl(path);
 }
 
 function tuneMaterial(material: THREE.Material) {
@@ -66,7 +67,7 @@ function cloneAndPrepareScene(scene: THREE.Group) {
   return cloned;
 }
 
-function JerseyModel({ jerseyId }: { jerseyId: string }) {
+function JerseyModel({ jerseyId, rotating, angle }: { jerseyId: string; rotating: boolean; angle: number }) {
   const modelPath = getModelPath(jerseyId);
   const { scene } = useGLTF(modelPath, true);
   const modelRef = useRef<THREE.Group>(null);
@@ -101,7 +102,8 @@ function JerseyModel({ jerseyId }: { jerseyId: string }) {
 
     const elapsed = state.clock.getElapsedTime() - startTimeRef.current;
     const rotationElapsed = Math.max(0, elapsed - AUTO_ROTATION_START_DELAY);
-    modelRef.current.rotation.y = (rotationElapsed / 10) * Math.PI * 2;
+    if (rotating) modelRef.current.rotation.y = (rotationElapsed / 10) * Math.PI * 2 + angle;
+    else modelRef.current.rotation.y = angle;
     modelRef.current.position.x = PRODUCT_STAGE_OFFSET.x;
     modelRef.current.position.y = PRODUCT_STAGE_OFFSET.y + Math.sin(elapsed * 0.7) * 0.012;
     modelRef.current.position.z = PRODUCT_STAGE_OFFSET.z;
@@ -119,6 +121,8 @@ function JerseyModel({ jerseyId }: { jerseyId: string }) {
 }
 
 export default function InteractiveJersey3D({ jerseyId }: InteractiveJersey3DProps) {
+  const [rotating, setRotating] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [angle, setAngle] = useState(0);
   return (
     <div className="relative h-full w-full" style={{ background: 'transparent' }}>
       <ModelErrorBoundary key={jerseyId}>
@@ -145,10 +149,11 @@ export default function InteractiveJersey3D({ jerseyId }: InteractiveJersey3DPro
               </Html>
             }
           >
-            <JerseyModel jerseyId={jerseyId} />
+            <JerseyModel jerseyId={jerseyId} rotating={rotating} angle={angle} />
           </Suspense>
 
           <OrbitControls
+            onStart={() => setRotating(false)}
             enableZoom={false}
             enablePan={false}
             minPolarAngle={Math.PI / 2}
@@ -159,6 +164,12 @@ export default function InteractiveJersey3D({ jerseyId }: InteractiveJersey3DPro
           />
         </Canvas>
       </ModelErrorBoundary>
+
+      <div className="model-controls absolute top-3 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+        <button className="model-button" aria-label="Rotate jersey left" onClick={() => { setRotating(false); setAngle((value) => value - Math.PI / 4); }}>↶</button>
+        <button className="model-button" aria-pressed={rotating} onClick={() => setRotating((value) => !value)}>{rotating ? 'Pause' : 'Auto rotate'}</button>
+        <button className="model-button" aria-label="Rotate jersey right" onClick={() => { setRotating(false); setAngle((value) => value + Math.PI / 4); }}>↷</button>
+      </div>
 
       <div className="pointer-events-none absolute bottom-1 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#8a8a9a] backdrop-blur-md">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

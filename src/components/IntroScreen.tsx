@@ -1,3 +1,4 @@
+import { assetUrl } from '../lib/demo';
 interface IntroScreenProps {
   exiting: boolean;
 }
@@ -11,7 +12,7 @@ export default function IntroScreen({ exiting }: IntroScreenProps) {
     >
       <div className="intro-logo flex flex-col items-center gap-5">
         <img
-          src="/1781254746556.png"
+          src={assetUrl('1781254746556.png')}
           alt="JERSERIO"
           style={{
             width: 140,

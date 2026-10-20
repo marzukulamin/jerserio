@@ -4,16 +4,18 @@ interface RightSidebarProps {
   visible: boolean;
   currentJerseyIndex: number;
   totalJerseys: number;
+  onNext: () => void;
 }
 
 export default function RightSidebar({
   visible,
   currentJerseyIndex,
   totalJerseys,
+  onNext,
 }: RightSidebarProps) {
   return (
     <div
-      className={`absolute right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-3
+      className={`right-sidebar absolute right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-3
         ${visible ? 'sb-right-enter' : 'opacity-0'}`}
       style={{ width: 52 }}
     >
@@ -80,6 +82,8 @@ export default function RightSidebar({
 
       {/* Arrow button */}
       <button
+        aria-label="Next jersey"
+        onClick={onNext}
         className="w-8 h-8 rounded-full border border-[#00d4aa]/40 flex items-center justify-center
           bg-[#00d4aa]/10 hover:bg-[#00d4aa]/20 hover:border-[#00d4aa]/70 transition-all duration-200
           text-[#00d4aa] mt-1"
