@@ -21,7 +21,7 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite. Add `?demo=1` to skip the intro or `?view=preview` to open the model gallery. Browser storage being blocked does not prevent shopping during the current page visit. The models are about 26 MB each, loaded on demand, so the first 3D view can take time on slow connections.
+Open the URL printed by Vite. Add `?demo=1` to skip the intro or `?view=preview` to open the model gallery. Browser storage being blocked does not prevent shopping during the current page visit. The demo uses Draco-compressed model copies (about 3.5–4.2 MB each), loaded on demand with a locally hosted decoder. Original models are preserved under public/textures. The first 3D view can still take time on slow connections.
 
 ```sh
 npm run typecheck

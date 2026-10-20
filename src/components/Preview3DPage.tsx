@@ -20,22 +20,22 @@ const FALLBACK_ASSETS: JerseyAsset[] = [
   {
     id: 'black-canarinho',
     name: 'Black Canarinho',
-    model: 'public/textures/Black Canarinho.glb',
+    model: 'public/textures/demo-models/black-canarinho.glb',
   },
   {
     id: 'golden-albiceleste',
     name: 'Golden Albiceleste',
-    model: 'public/textures/Golden Albiceleste.glb',
+    model: 'public/textures/demo-models/golden-albiceleste.glb',
   },
   {
     id: 'le-phantom',
     name: 'Le Phantom',
-    model: 'public/textures/Le Phantom.glb',
+    model: 'public/textures/demo-models/le-phantom.glb',
   },
   {
     id: 'lusitano-prime',
     name: 'Lusitano Prime',
-    model: 'public/textures/Lusitano Prime.glb',
+    model: 'public/textures/demo-models/lusitano-prime.glb',
   },
 ];
 
@@ -61,7 +61,7 @@ function tuneMaterial(material: THREE.Material) {
 
 function PreviewJerseyModel({ asset }: { asset: JerseyAsset }) {
   const modelPath = publicPath(asset.model);
-  const { scene } = useGLTF(modelPath, true);
+  const { scene } = useGLTF(modelPath, assetUrl('draco/'));
   const modelRef = useRef<THREE.Group>(null);
   const clonedScene = useMemo(() => {
     const cloned = scene.clone(true);

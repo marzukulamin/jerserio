@@ -2,21 +2,21 @@
   {
     "id": "black-canarinho",
     "name": "Black Canarinho",
-    "model": "public/textures/Black Canarinho.glb"
+    "model": "public/textures/demo-models/black-canarinho.glb"
   },
   {
     "id": "golden-albiceleste",
     "name": "Golden Albiceleste",
-    "model": "public/textures/Golden Albiceleste.glb"
+    "model": "public/textures/demo-models/golden-albiceleste.glb"
   },
   {
     "id": "le-phantom",
     "name": "Le Phantom",
-    "model": "public/textures/Le Phantom.glb"
+    "model": "public/textures/demo-models/le-phantom.glb"
   },
   {
     "id": "lusitano-prime",
     "name": "Lusitano Prime",
-    "model": "public/textures/Lusitano Prime.glb"
+    "model": "public/textures/demo-models/lusitano-prime.glb"
   }
 ]

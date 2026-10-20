@@ -10,10 +10,10 @@ interface InteractiveJersey3DProps {
 }
 
 const MODEL_PATHS: Record<string, string> = {
-  'black-canarinho': '/textures/Black Canarinho.glb',
-  'golden-albiceleste': '/textures/Golden Albiceleste.glb',
-  'le-phantom': '/textures/Le Phantom.glb',
-  'lusitano-prime': '/textures/Lusitano Prime.glb',
+  'black-canarinho': '/textures/demo-models/black-canarinho.glb',
+  'golden-albiceleste': '/textures/demo-models/golden-albiceleste.glb',
+  'le-phantom': '/textures/demo-models/le-phantom.glb',
+  'lusitano-prime': '/textures/demo-models/lusitano-prime.glb',
 };
 
 const PRODUCT_STAGE_OFFSET = new THREE.Vector3(0, 0, 0);
@@ -69,7 +69,7 @@ function cloneAndPrepareScene(scene: THREE.Group) {
 
 function JerseyModel({ jerseyId, rotating, angle }: { jerseyId: string; rotating: boolean; angle: number }) {
   const modelPath = getModelPath(jerseyId);
-  const { scene } = useGLTF(modelPath, true);
+  const { scene } = useGLTF(modelPath, assetUrl('draco/'));
   const modelRef = useRef<THREE.Group>(null);
   const startTimeRef = useRef<number | null>(null);
   const clonedScene = useMemo(() => cloneAndPrepareScene(scene), [scene]);
